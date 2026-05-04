@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TicTacToe
@@ -8,6 +9,7 @@ namespace TicTacToe
 
         private string _currentPlayer = "X";
         private bool _isGameOver;
+        private Stack<ICommand> _commandHistory = new Stack<ICommand>();
 
         private static readonly int[][] WinningLines = new int[][]
         {
@@ -45,7 +47,11 @@ namespace TicTacToe
                 return;
             }
 
-            cell.SetMark(_currentPlayer);
+            //Using the move command
+            ICommand move = new MoveCommand(cell, _currentPlayer);
+            move.Execute();
+            _commandHistory.Push(move);
+
             GameEvents.MoveMade?.Invoke();
 
             string winner = CheckWinner();
@@ -68,14 +74,31 @@ namespace TicTacToe
             _currentPlayer = _currentPlayer == "X" ? "O" : "X";
         }
 
+
+        //My new function i added to button to undo stuff/
+        public void UndoLastMove()
+        {
+            if (_commandHistory.Count == 0 || _isGameOver)
+            {
+                GameEvents.InvalidMove?.Invoke();
+                return;
+            }
+
+            ICommand lastMove = _commandHistory.Pop();
+            lastMove.Undo(); //Undoing the last move
+            _currentPlayer = _currentPlayer == "X" ? "O" : "X"; //Returning the turn
+        }
+
         private void ResetBoard()
         {
             for (int i = 0; i < _cells.Length; i++)
             {
                 _cells[i].Clear();
             }
+
             _currentPlayer = "X";
             _isGameOver = false;
+            _commandHistory.Clear();
         }
 
         private string CheckWinner()
@@ -92,6 +115,7 @@ namespace TicTacToe
                     return a;
                 }
             }
+
             return "";
         }
 
@@ -104,6 +128,7 @@ namespace TicTacToe
                     return false;
                 }
             }
+
             return true;
         }
     }
